@@ -6,6 +6,7 @@ All notable changes are documented here using Keep a Changelog conventions.
 
 ### Added
 
+- Provide a Makefile for standard developer workflows including development, build, test, and contributor validation.
 - View tracker tickets as a backlog list, select tickets on the list or board, and prepare a confirmed multi-ticket `pickup_issues` run. Board cards identify their parent epic and expose configured agent skills from a compact menu.
 - Open a native terminal at the current project folder and copy the folder path from the workspace heading.
 - Open desktop settings, toggle the project sidebar and start a project prompt with keyboard shortcuts matching Electron; a visible sidebar grip supports pointer and keyboard resizing.

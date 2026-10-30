@@ -168,8 +168,9 @@ new folder. Only `http://127.0.0.1:<port>`
 workstation-agent origins are accepted by Tauri; redirects and proxies are
 disabled.
 
-`npm run dev` starts a browser preview of the shell. Native integration is intentionally
-unavailable there and displays an explanatory message. Use `npm run tauri dev` for live data.
+`make dev` (or `npm run tauri dev`) starts the desktop application with live data.
+`make dev-web` (or `npm run dev`) starts a browser preview of the shell. Native integration is intentionally
+unavailable there and displays an explanatory message. Run `make help` to inspect available Makefile targets.
 
 ## Start, monitor and stop work
 
