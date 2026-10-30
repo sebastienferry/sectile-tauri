@@ -25,5 +25,8 @@ pub fn open_terminal_at(path: String) -> Result<(), String> {
         command.arg("/K").arg("cd").arg("/d").arg(folder);
         command
     };
-    command.spawn().map(|_| ()).map_err(|_| "Impossible d’ouvrir le terminal".into())
+    command
+        .spawn()
+        .map(|_| ())
+        .map_err(|_| "Impossible d’ouvrir le terminal".into())
 }

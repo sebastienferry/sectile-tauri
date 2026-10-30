@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help install dev dev-web build build-app check check-ts check-rust test test-unit test-ui test-rust validate prepare-services package-macos stop-local clean
+.PHONY: help install dev dev-web build build-app check check-ts check-rust check-fmt fmt-rust test test-unit test-ui test-rust validate prepare-services package-macos stop-local clean
 
 node_modules: package.json package-lock.json
 	npm install
@@ -27,8 +27,15 @@ build-app: node_modules ## Build standalone desktop application bundle via Tauri
 check-ts: node_modules ## Run TypeScript type checking
 	npm run check
 
-check-rust: ## Run Rust cargo check
+check-rust: ## Run Rust cargo check and fmt check
 	npm run check:rust
+	cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+
+check-fmt: ## Verify Rust code formatting without changes
+	cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+
+fmt-rust: ## Format Rust code with cargo fmt
+	cargo fmt --manifest-path src-tauri/Cargo.toml
 
 check: check-ts check-rust ## Run both TypeScript and Rust static checks
 
