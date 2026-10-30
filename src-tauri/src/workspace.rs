@@ -191,20 +191,25 @@ pub async fn configure_provider_mcp(
 mod tests {
     #[test]
     fn non_git_folder_metadata_keeps_workflow_readiness_distinct() {
+        let test_path = if cfg!(windows) {
+            "C:\\plain-folder"
+        } else {
+            "/plain-folder"
+        };
         let mut source =
             json!({"configured":false,"path":"","specDefault":"","issueSpecDefault":""});
         apply_mapped_folder_fallback(
             &mut source,
-            &json!([{"id":"p","path":"/plain-folder","disconnected":false}]),
+            &json!([{"id":"p","path":test_path,"disconnected":false}]),
             "p",
         );
-        assert_eq!(source["path"], "/plain-folder");
-        assert_eq!(source["specDefault"], "/plain-folder");
+        assert_eq!(source["path"], test_path);
+        assert_eq!(source["specDefault"], test_path);
         assert_eq!(source["configured"], false);
         let mut other = json!({"configured":false,"path":""});
         apply_mapped_folder_fallback(
             &mut other,
-            &json!([{"id":"p","path":"/plain-folder","disconnected":true}]),
+            &json!([{"id":"p","path":test_path,"disconnected":true}]),
             "p",
         );
         assert_eq!(other["path"], "");

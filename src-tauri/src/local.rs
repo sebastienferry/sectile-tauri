@@ -2540,10 +2540,16 @@ mod tracker_edit_tests {
         let previous = json!({"name":"Old","provider":"gitlab","site":"https://gitlab.com/api/v4",
             "scope":"team/old","boardId":"board-9","stageColumns":{"active":["Doing"]},
             "autoSyncEnabled":false,"autoSyncIntervalMin":30,"ticketCount":4});
-        let updated = edited_tracker(previous, TrackerInput {
-            name: "New".into(), provider: "gitlab".into(),
-            site: "https://gitlab.com/api/v4".into(), scope: "team/old".into(),
-        }).unwrap();
+        let updated = edited_tracker(
+            previous,
+            TrackerInput {
+                name: "New".into(),
+                provider: "gitlab".into(),
+                site: "https://gitlab.com/api/v4".into(),
+                scope: "team/old".into(),
+            },
+        )
+        .unwrap();
         assert_eq!(updated["name"], "New");
         assert_eq!(updated["boardId"], "board-9");
         assert_eq!(updated["stageColumns"]["active"], json!(["Doing"]));

@@ -6,6 +6,7 @@ All notable changes are documented here using Keep a Changelog conventions.
 
 ### Added
 
+- Provide a Makefile for standard developer workflows including development, build, test, and contributor validation.
 - Put rename, stop, archive and execution access in the conversation menu.
 - Show each linked PR/MR and its last known state in ticket conversations and workflows, including a compact sidebar shortcut and a clear indication when forge authentication prevents a state refresh.
 - Center the sidebar resize handle on its separator line at all sidebar widths.
