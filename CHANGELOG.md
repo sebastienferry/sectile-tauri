@@ -7,6 +7,11 @@ All notable changes are documented here using Keep a Changelog conventions.
 ### Added
 
 - Provide a Makefile for standard developer workflows including development, build, test, and contributor validation.
+- Put rename, stop, archive and execution access in the conversation menu.
+- Show each linked PR/MR and its last known state in ticket conversations and workflows, including a compact sidebar shortcut and a clear indication when forge authentication prevents a state refresh.
+- Center the sidebar resize handle on its separator line at all sidebar widths.
+- Show execution, skill, ticket status and workflow stage above the conversation composer, with direct access to the run and project queue. Group project conversations by stage or tracker status and identify live sessions with a blue dot.
+- Stop conversations from their sidebar menu, then archive and restore them from a desktop-specific archived view without deleting Go history.
 - View tracker tickets as a backlog list, select tickets on the list or board, and prepare a confirmed multi-ticket `pickup_issues` run. Board cards identify their parent epic and expose configured agent skills from a compact menu.
 - Open a native terminal at the current project folder and copy the folder path from the workspace heading.
 - Open desktop settings, toggle the project sidebar and start a project prompt with keyboard shortcuts matching Electron; a visible sidebar grip supports pointer and keyboard resizing.
@@ -22,6 +27,7 @@ All notable changes are documented here using Keep a Changelog conventions.
 
 ### Fixed
 
+- Keep conversation activity dots circular in the project sidebar instead of stretching them across the row.
 - Open Settings through the native macOS Command-comma menu shortcut when the WebView does not receive the key event.
 - Match Electron's epic colors on the desktop board and backlog list when the project enables them, and explain when a restored Codex conversation can check MCP again.
 - Keep the conversation composer visible when an interactive question takes more space than the window provides.
@@ -71,6 +77,10 @@ All notable changes are documented here using Keep a Changelog conventions.
 
 ### Changed
 
+- Cap the visible project sidebar in narrow windows so conversations retain room for their transcript and composer, while restoring the saved width in a larger window.
+- Keep the conversation status row focused on activity and execution for free project prompts; show skill, ticket, PR/MR and stage only when relevant.
+- Keep project navigation in the sidebar while ticket workflows use one return action instead of repeating project controls in their header.
+- Keep the workflow's unverified engine-preparation note in a compact disclosure while leaving real MCP conflicts visible.
 - Make the free prompt the primary project-header action and keep board settings in a compact labeled icon.
 - Keep the ticket board controls on a compact row and show batch actions only after tickets are selected.
 - Open tracker boards with color-coded workflow stages and remember the choice to group by tracker status.

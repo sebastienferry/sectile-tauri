@@ -56,6 +56,56 @@ test("the React controller renders Go state, sends only the next message and res
   await screen.findByText("Lecture seule");
   expect(screen.getByRole("textbox", { name: "Message suivant" }).hasAttribute("disabled")).toBe(true);
 });
+test("a free project conversation keeps only relevant status above the composer",async()=>{
+ vi.mocked(api.readConversation).mockResolvedValue(snapshot("free-chat"));
+ render(<ProjectPrompt projectId="p" runId="free-chat" run={{id:"free-chat",projectId:"p",conversation:true,status:"running",createdAt:"2026-10-30"}} onCreated={vi.fn()}/>);
+ await screen.findByText("Repository explanation");
+ const strip=screen.getByLabelText("Suivi de la conversation");
+ expect(strip.textContent).toContain("Prêt à répondre");
+ expect(strip.textContent).toContain("Exécution : Session active");
+ expect(strip.textContent).not.toContain("Skill :");
+ expect(strip.textContent).not.toContain("Ticket :");
+ expect(strip.textContent).not.toContain("Étape :");
+});
+test("a linked conversation shows ticket and execution state above the composer",async()=>{
+ vi.mocked(api.readConversation).mockResolvedValue(snapshot("linked-chat"));
+ const openExecution=vi.fn();
+ const openQueue=vi.fn();
+ render(<ProjectPrompt projectId="p" runId="linked-chat" run={{id:"linked-chat",projectId:"p",conversation:true,taskId:"task",taskKey:"APP-42",skill:"clarify",status:"running",createdAt:"2026-10-30"}} task={{id:"task",key:"APP-42",title:"Linked task",source:"jira",trackerStatus:"In Progress",status:"to_close",prUrl:"https://github.com/team/app/pull/42",prLinks:[{url:"https://github.com/team/app/pull/42",state:"open"}]}} onOpenExecution={openExecution} onOpenQueue={openQueue} onCreated={vi.fn()}/>);
+ await screen.findByText("Repository explanation");
+ const strip=screen.getByLabelText("Suivi de la conversation");
+ expect(strip.textContent).toContain("Skill : Clarifier");
+ expect(strip.textContent).toContain("APP-42 · In Progress");
+ expect(strip.textContent).toContain("Étape : Revu");
+ expect(strip.textContent).toContain("PR/MR : PR #42 · ouverte");
+ expect(screen.getByRole("button",{name:"PR #42 · ouverte"})).toBeTruthy();
+ fireEvent.click(screen.getByLabelText("Actions de la discussion"));
+ expect(screen.getByRole("button",{name:"Voir l’exécution"})).toBeTruthy();
+ expect(screen.getByRole("button",{name:"Arrêter la discussion"})).toBeTruthy();
+ fireEvent.click(screen.getByText("Exécution : Session active"));
+ fireEvent.click(screen.getByRole("button",{name:"Voir cette exécution"}));
+ expect(openExecution).toHaveBeenCalledOnce();
+ fireEvent.click(screen.getByRole("button",{name:"Voir la file des exécutions"}));
+ expect(openQueue).toHaveBeenCalledOnce();
+});
+test("a ticket conversation lists every linked pull request with its own state",async()=>{
+ vi.mocked(api.readConversation).mockResolvedValue(snapshot("multi-pr-chat"));
+ render(<ProjectPrompt projectId="p" runId="multi-pr-chat" run={{id:"multi-pr-chat",projectId:"p",conversation:true,taskId:"task",taskKey:"APP-42",skill:"implement",status:"completed",createdAt:"2026-10-30"}} task={{id:"task",key:"APP-42",title:"Linked task",source:"gitlab",status:"to_review",prLinks:[{url:"https://github.com/team/app/pull/42",state:"merged"},{url:"https://gitlab.example.com/team/app/-/merge_requests/7",state:"open"}]}} onCreated={vi.fn()}/>);
+ await screen.findByText("Repository explanation");
+ fireEvent.click(screen.getByText("PR/MR : 2 liées"));
+ expect(screen.getByRole("button",{name:"PR #42 · fusionnée"})).toBeTruthy();
+ expect(screen.getByRole("button",{name:"MR !7 · ouverte"})).toBeTruthy();
+});
+test("a finished discussion archives through its own menu without sending a provider turn",async()=>{
+ vi.mocked(api.readConversation).mockResolvedValue({...snapshot("finished-chat"),readOnly:true,canRename:true});
+ const archive=vi.fn();
+ render(<ProjectPrompt projectId="p" runId="finished-chat" run={{id:"finished-chat",projectId:"p",taskId:"",skill:"",status:"completed",conversation:true,createdAt:"2026-10-30"}} onArchive={archive} onCreated={vi.fn()}/>);
+ await screen.findByText("Repository explanation");
+ fireEvent.click(screen.getByLabelText("Actions de la discussion"));
+ fireEvent.click(screen.getByRole("button",{name:"Archiver la discussion"}));
+ expect(archive).toHaveBeenCalledOnce();
+ expect(api.controlConversation).not.toHaveBeenCalled();
+});
 test("pending tools require an explicit decision; navigation does not interrupt Go", async () => {
   vi.mocked(api.readConversation).mockResolvedValue({ ...snapshot("approval-chat"), approvals: [{ id: "tool-1", tool: "Bash", input: { command: "git status" } }] });
   const view = render(<ProjectPrompt projectId="project-three" runId="approval-chat" onCreated={vi.fn()} />);

@@ -102,6 +102,7 @@ pub fn run() {
             agent::detach_project_folder,
             agent::list_projects,
             agent::list_tasks,
+            agent::get_task,
             agent::execution_snapshot,
             agent::project_skills,
             agent::launch_task,

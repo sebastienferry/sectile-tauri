@@ -12,13 +12,18 @@ existing Sectile Go server, workstation agent and MCP infrastructure.
 - Columns use remote tracker statuses. Local tasks and unknown sources are excluded. Ticket menus can launch configured agent skills; a selected batch uses the Go `pickup_issues` skill after confirmation.
 - Native authenticated loopback bridge; the agent token never enters the webview.
 - Project-scoped free prompts with Claude Code or Codex, using a lightweight React controller over the Go conversation engine.
+- Free-prompt conversations show concise activity and execution status; ticket-linked conversations add their skill, tracker status, PR/MR and workflow stage.
 - Conversation composers keep folder attachment, terminal launch and MCP verification in a compact action row. The project folder path beneath the title can be copied. Folder attachment is shared with the project and applies to a running conversation on its next message.
+- Ticket conversations show linked pull requests and merge requests with their last known forge state; the status strip and ticket workflow list every link, while the sidebar provides a compact shortcut to the primary link. An unavailable forge credential is shown explicitly rather than implying a current state.
 - Task launch with project-provided skills, inherited or explicit execution mode, and optional instructions.
+- Ticket workflows keep unverified provider preparation in a compact disclosure; actual MCP configuration conflicts remain visible before launch.
+- Ticket workflows use one return action to the board, with project prompts and settings available from the project sidebar.
 - Run monitoring every three seconds, waiting/authentication states and acknowledged cancellation.
 - Read-only streamed console output with bounded scrollback and reconnect controls.
 - Launch of saved named orchestration agents with launched/skipped ticket reports.
 - Native setup for a local profile, personal tracker credentials, ticket sources and projects, including folder selection when associating an existing project.
 - Use Cmd/Ctrl+K for navigation, Cmd/Ctrl+, for Settings, Cmd/Ctrl+B for the project sidebar, and Cmd/Ctrl+N for a new prompt in the selected project. Drag the sidebar grip or focus it and use the arrow keys to resize it.
+- At narrow window widths, the visible sidebar is capped so the conversation stays usable; its saved width returns when the window is wider.
 - Native ticket-source editing and deletion for Local users and Fleet administrators; deletion is available only after the source is no longer linked to projects or tickets.
 - Explicit Local or Fleet runtime selection, with native one-time-code Fleet pairing and private workstation credentials.
 - Automatic startup and reconnection of the Go companion in Local mode or the workstation agent in Fleet mode.
@@ -371,6 +376,17 @@ Code or Codex, and send a request. Follow the answer, inspect tool details, allo
 or deny a tool request, and interrupt the current turn from the conversation.
 Select the conversation in the project sidebar to return to it; navigating away
 does not stop Go. Ticket-specific skill launch stays on each board card.
+The conversation status strip shows execution, skill, ticket and workflow stage;
+its execution menu opens the run or project queue. The project menu groups
+conversations by recent activity, workflow stage or tracker status. Each
+conversation's sidebar menu can stop its Go session. Once stopped, it can be
+archived; the project menu switches to archived conversations so they can be
+opened or restored. Archive visibility is a preference on this desktop, while
+Go retains the transcript and run history.
+Conversation headers contain discussion actions instead of repeating project
+board, new-prompt and settings controls. Click the project in the sidebar to
+return to its board. Ticket conversations show a PR/MR link in the sidebar and
+status strip when the tracker supplies one.
 
 The conversation view uses a lightweight React controller over native IPC. Go owns
 history, execution, permissions and interruption. The controller polls while a

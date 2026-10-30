@@ -9,10 +9,10 @@ import App from "../src/App";
 import type { Task } from "../src/domain/board";
 import { conversationFor } from "../src/lib/conversation-controller";
 import * as workspace from "../src/lib/workspace";
-vi.mock("../src/lib/workspace",async original=>({...await original<typeof workspace>(),projectContext:vi.fn()}));
+vi.mock("../src/lib/workspace",async original=>({...await original<typeof workspace>(),projectContext:vi.fn(),openExternalLink:vi.fn()}));
 import * as api from "../src/lib/agent";
 vi.mock("../src/lib/agent", () => ({
-  listProjects: vi.fn(), listTasks: vi.fn(), executionSnapshot: vi.fn(),
+  listProjects: vi.fn(), listTasks: vi.fn(), getTask: vi.fn(), executionSnapshot: vi.fn(),
   projectSkills: vi.fn(), getOrchestration: vi.fn(), launchTask: vi.fn(),
   stopRun: vi.fn(), runOrchestration: vi.fn(),
 }));
@@ -20,9 +20,11 @@ vi.mock("../src/components/RunConsole", () => ({ RunConsole: () => <div>Live out
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(workspace.projectContext).mockResolvedValue({configured:true,path:"/work/example",skills:[],policy:{}});
+  vi.mocked(workspace.openExternalLink).mockResolvedValue(undefined);
   vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
   vi.mocked(api.listProjects).mockResolvedValue([{ id: "p", name: "Example" }]);
   vi.mocked(api.listTasks).mockResolvedValue([]);
+  vi.mocked(api.getTask).mockResolvedValue({id:"task",key:"APP-1",title:"Task",status:"to_clarify",source:"jira",trackerStatus:"Open"});
   vi.mocked(api.projectSkills).mockResolvedValue([{ id: "implement_issue" }]);
   vi.mocked(api.getOrchestration).mockResolvedValue({ orchestratorEnabled: false, agents: [] });
   vi.mocked(api.executionSnapshot).mockResolvedValue({
@@ -76,6 +78,65 @@ test("workflow run status stays on its ticket instead of duplicating the project
   const sidebar = screen.getByRole("complementary");
   expect(within(sidebar).queryByText("APP-2")).toBeNull();
   expect(within(sidebar).getByRole("button", { name: /Toutes les exécutions/ })).toBeTruthy();
+});
+test("ticket workflow keeps its own return action without repeated project controls",async()=>{
+ vi.mocked(api.listProjects).mockResolvedValue([{id:"p",name:"Example",path:"/work/example"}]);
+ vi.mocked(api.listTasks).mockResolvedValue([{id:"task",key:"APP-1",title:"A tracked ticket",status:"to_clarify",source:"jira",trackerStatus:"Open"}]);
+ vi.mocked(workspace.projectContext).mockResolvedValue({configured:true,path:"/work/example",skills:[],policy:{},board:{trackers:[{trackerId:"jira-1",provider:"jira"}]}});
+ render(<App/>);
+ fireEvent.click(await screen.findByRole("button",{name:"Ouvrir le workflow de APP-1"}));
+ expect(await screen.findByRole("heading",{name:"A tracked ticket"})).toBeTruthy();
+ expect(screen.getByRole("button",{name:"← Tickets du projet"})).toBeTruthy();
+ expect(screen.queryByRole("button",{name:"Tableau"})).toBeNull();
+ expect(screen.queryByRole("button",{name:"Nouveau prompt"})).toBeNull();
+ expect(screen.queryByRole("button",{name:"Configurer le projet"})).toBeNull();
+ expect(screen.getByRole("button",{name:"Nouveau prompt dans Example"})).toBeTruthy();
+ fireEvent.click(screen.getByRole("button",{name:"← Tickets du projet"}));
+ expect(await screen.findByRole("textbox",{name:"Rechercher des tickets"})).toBeTruthy();
+});
+test("project menu opens the execution queue and groups ticket conversations by stage",async()=>{
+ vi.mocked(api.listTasks).mockResolvedValue([{id:"new",key:"APP-1",title:"New task",status:"to_clarify",source:"jira",trackerStatus:"Open"},{id:"reviewed",key:"APP-2",title:"Reviewed task",status:"to_close",source:"jira",trackerStatus:"Done",prUrl:"https://gitlab.example.com/team/app/-/merge_requests/7",prLinks:[{url:"https://gitlab.example.com/team/app/-/merge_requests/7",state:"merged"}]}]);
+ vi.mocked(api.executionSnapshot).mockResolvedValue({status:{connected:true,capabilities:[]},runs:[
+  {id:"new-run",projectId:"p",taskId:"new",taskKey:"APP-1",conversation:true,title:"Clarify this",provider:"claude",status:"running",skill:"clarify",createdAt:"2026-10-30"},
+  {id:"reviewed-run",projectId:"p",taskId:"reviewed",taskKey:"APP-2",conversation:true,title:"Review this",provider:"codex",status:"completed",skill:"adjust",createdAt:"2026-10-29"},
+ ]});
+ render(<App/>);
+ const sidebar=screen.getByRole("complementary");
+ await within(sidebar).findByText("APP-1");
+ expect(sidebar.querySelector(".conversation-indicator.session")).not.toBeNull();
+ fireEvent.click(within(sidebar).getByLabelText("Actions pour Example"));
+ fireEvent.change(within(sidebar).getByRole("combobox",{name:"Grouper les conversations de Example"}),{target:{value:"stage"}});
+ expect(localStorage.getItem("sectile-tauri.conversationGrouping")).toBe("stage");
+ await within(sidebar).findByText("À clarifier");
+ expect(within(sidebar).getByText("Revu")).toBeTruthy();
+ expect(within(sidebar).getByRole("button",{name:"Ouvrir la PR/MR de APP-2"}).getAttribute("title")).toContain("MR !7 · fusionnée");
+ fireEvent.click(within(sidebar).getByRole("button",{name:"Ouvrir la PR/MR de APP-2"}));
+ expect(workspace.openExternalLink).toHaveBeenCalledWith("https://gitlab.example.com/team/app/-/merge_requests/7");
+ fireEvent.click(within(sidebar).getByRole("button",{name:"File des exécutions"}));
+ await screen.findByText("Exécutions de ce poste · 1 actives");
+});
+test("conversation actions stop a live session and archive and restore a finished one",async()=>{
+ vi.mocked(api.executionSnapshot).mockResolvedValue({status:{connected:true,capabilities:[]},runs:[
+  {id:"live-chat",projectId:"p",conversation:true,title:"Live discussion",provider:"claude",status:"running",skill:"",createdAt:"2026-10-30"},
+  {id:"done-chat",projectId:"p",conversation:true,title:"Finished discussion",provider:"codex",status:"completed",skill:"",createdAt:"2026-10-29"},
+ ]});
+ render(<App/>);
+ const sidebar=screen.getByRole("complementary");
+ await within(sidebar).findByText("Live discussion");
+ fireEvent.click(within(sidebar).getByLabelText("Actions de la conversation Live discussion"));
+ fireEvent.click(within(sidebar).getByRole("button",{name:"Arrêter la conversation"}));
+ await waitFor(()=>expect(api.stopRun).toHaveBeenCalledWith("live-chat"));
+ const finishedActions=within(sidebar).getByLabelText("Actions de la conversation Finished discussion").closest("details")!;
+ fireEvent.click(within(finishedActions).getByLabelText("Actions de la conversation Finished discussion"));
+ fireEvent.click(within(finishedActions).getByRole("button",{name:"Archiver la conversation"}));
+ expect(within(sidebar).queryByText("Finished discussion")).toBeNull();
+ expect(localStorage.getItem("sectile-tauri.archivedConversations")).toBe('["done-chat"]');
+ fireEvent.click(within(sidebar).getByLabelText("Actions pour Example"));
+ fireEvent.click(within(sidebar).getByRole("button",{name:"Voir les conversations archivées"}));
+ expect(within(sidebar).getByText("Finished discussion")).toBeTruthy();
+ fireEvent.click(within(sidebar).getByLabelText("Actions de la conversation Finished discussion"));
+ fireEvent.click(within(sidebar).getByRole("button",{name:"Restaurer la conversation"}));
+ expect(localStorage.getItem("sectile-tauri.archivedConversations")).toBe("[]");
 });
 test("launch restores the last project board instead of selecting the first project", async () => {
   vi.mocked(api.listProjects).mockResolvedValue([
@@ -418,6 +479,22 @@ test("keyboard navigation opens a prompt and settings while the sidebar width pe
  fireEvent.keyDown(window, { key: ",", ...modifier });
  await screen.findByRole("navigation", { name: "Sections des paramètres" });
 });
+test("narrow windows cap the visible sidebar without discarding the saved width",async()=>{
+ localStorage.setItem("sectile-tauri.sidebarWidth","368");
+ vi.stubGlobal("innerWidth",800);
+ render(<App/>);
+ await screen.findByRole("button",{name:"Example"});
+ const sidebar=screen.getByRole("complementary");
+ const divider=screen.getByRole("separator",{name:"Redimensionner la barre latérale"});
+ expect(sidebar.style.width).toBe("256px");
+ expect(divider.getAttribute("aria-valuenow")).toBe("256");
+ expect(divider.getAttribute("aria-valuemax")).toBe("256");
+ expect(localStorage.getItem("sectile-tauri.sidebarWidth")).toBe("368");
+ vi.stubGlobal("innerWidth",1280);
+ fireEvent(window,new Event("resize"));
+ expect(sidebar.style.width).toBe("368px");
+ expect(divider.getAttribute("aria-valuemax")).toBe("480");
+});
 
 test("settings use one navigation rail and return to the previous workspace", async () => {
  vi.mocked(invoke).mockImplementation(async command => command === "local_service_log"
@@ -481,7 +558,10 @@ test("existing conversations stay readable without a current project folder",asy
  fireEvent.click(await screen.findByRole("button",{name:/Saved conversation/}));
  expect(screen.getByText(/Claude Code · Prête/)).toBeTruthy();
  await screen.findByText("Free prompt for p");
- expect(screen.getByRole("button",{name:"Nouveau prompt"})).toBeTruthy();
+ expect(screen.queryByRole("button",{name:"Nouveau prompt"})).toBeNull();
+ expect(screen.queryByRole("button",{name:"Configurer le projet"})).toBeNull();
+ expect(screen.queryByRole("button",{name:"Tableau"})).toBeNull();
+ expect(screen.getByRole("button",{name:"Nouveau prompt dans Example"})).toBeTruthy();
  expect(screen.queryByRole("button",{name:"Choisir un dossier"})).toBeNull();
 });
 

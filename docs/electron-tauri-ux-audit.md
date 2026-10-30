@@ -545,6 +545,41 @@ contracts.
 | Native settings | Local/Fleet ownership, profile, tracker, project, provider and service responsibilities remain explicit. Advanced token, permission and execution controls stay available in their scoped sections. |
 | Visual system | Matched theme captures, semantic color roles, AA text contrast, visible focus and reduced-motion behavior are recorded. No broad token change was justified by the captures. |
 
+The subsequent conversation-status pass uses Go's `prLinks` contract to show
+every linked PR/MR and its last known forge state in the conversation strip and
+ticket workflow. The sidebar keeps a compact primary-link shortcut. When Go
+reports a missing forge token or no refreshed state, the desktop says so rather
+than treating the workflow stage as the PR/MR state. Domain and UI regressions
+cover multiple links, state labels and the legacy `prUrl` fallback.
+The isolated macOS app displayed the QA ticket's linked `MR !1 · état inconnu`
+in the workflow. That fixture uses a local forge simulator and does not prove a
+live forge-state refresh; the native capture is
+`docs/ux-captures/workflow-pr-state-native.png`.
+That capture also exposed an elongated blue activity indicator in the project
+rail. The generic run-row flex rule matched the conversation indicator; it is
+now scoped to non-conversation run rows. The native retake is recorded in
+`docs/ux-captures/conversation-indicators-native.png`.
+The same workflow capture showed that an unverified engine-preparation note
+occupied a large card even though the launch path rechecks preparation and
+remains available. This note is now a collapsed disclosure; a known MCP
+configuration conflict still renders as an explicit error. The native retake
+is `docs/ux-captures/workflow-preparation-compact-native.png`.
+The ticket workflow also repeated board, prompt and project-settings actions in
+its header despite having its own return action and the project sidebar. The
+workflow now keeps the project identity and path in its header, then uses the
+ticket-level return action; the native retake is
+`docs/ux-captures/workflow-focused-header-native.png`.
+The native Codex free-prompt conversation showed "Skill: None", "Ticket: free
+prompt" and "Stage: no ticket" in the status row. Those values do not help a
+user resume or supervise that discussion. Free prompts now show activity and
+execution only; real skills and ticket-linked metadata remain visible. The
+narrow-window native retake is `docs/ux-captures/free-conversation-status-native.png`.
+At 800 CSS pixels, the retained 368-pixel project rail left only 432 pixels for
+the conversation (`docs/ux-captures/free-conversation-status-before-native.png`).
+Its visible width now caps at 32% of the window, with a 200 pixel floor; the
+saved preference returns when the window widens. The divider's accessible value
+and keyboard limits follow the visible width.
+
 Current verification passes on Tauri commit `239d7c1`: `npm run check`, 14
 domain tests, 101 UI tests, 35 Rust tests and `npm run build`. The short-window
 prompt and orchestration surfaces were retaken from the current source at
@@ -1389,3 +1424,22 @@ while refresh stays an icon. The [native header capture](ux-captures/board-nativ
 shows the smaller header and longer visible folder path. Clicking the settings
 icon opened the same project's folder, tracker and conversation settings; the
 Tableau action returned to its ticket board. No project data was changed.
+
+The later conversation retake removes board, new-prompt and project-settings
+buttons from an open conversation. Its header keeps the title and response
+state, with rename, run, stop and archive actions in a compact discussion menu.
+The project name in the sidebar still opens the board and its project actions.
+The [native conversation capture](ux-captures/conversation-context-menu-native.png)
+shows the quieter header and the resize handle centered on its separator;
+the [open-menu capture](ux-captures/conversation-actions-native.png) shows the
+discussion actions. The isolated port-52964 companion retained its existing
+Claude/Codex history. The native screenshot verifies handle alignment, while
+automated pointer drag was interrupted by a foreground app change. Keyboard
+resize retains its automated coverage; native pointer-drag retake remains open.
+
+Ticket-linked conversations now show a PR/MR shortcut only when the tracker
+provides a valid web link. UI tests cover the sidebar shortcut, status strip
+and URL passed to the native link opener. The isolated native project has a
+ticket with a linked MR, but its selected conversation is a free prompt; this
+retake does not claim a native capture of the new ticket-conversation shortcut.
+Remote Fleet and the signed release remain separate qualifications.
